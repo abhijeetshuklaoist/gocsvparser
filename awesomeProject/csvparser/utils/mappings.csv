@@ -4,13 +4,20 @@ f.name,First Name
 f_name,First Name
 first_name,First Name
 firstname,First Name
+first,First Name
+f. name,First Name
 Last Name,Last Name
 l.name,Last Name
 f_lame,Last Name
 last_name,Last Name
 lastname,Last Name
+last,Last Name
+l. name,Last Name
 Wage,Wage
 Salary,Wage
 Email,Email
+E-mail,Email
 Number,EmployeeNumber
 EmployeeNumber,EmployeeNumber
+Id,EmployeeNumber
+emp id,EmployeeNumber

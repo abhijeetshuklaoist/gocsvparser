@@ -32,7 +32,7 @@ func main() {
 }
 
 func readCSV() {
-	path, _ := filepath.Abs("csvparser/csvs/roster1.csv")
+	path, _ := filepath.Abs("csvparser/csvs/roster4.csv")
 	csvFile, err := os.Open(path)
 	if err != nil {
 		fmt.Printf("Error happend", err)
@@ -95,7 +95,7 @@ func readCSV() {
 func fetchHeaders(record []string, headerMappings map[string]string) (map[string]int, error) {
 	headers := make(map[string]int)
 	for i := 0; i < len(record); i++ {
-		expectedHeader, exists := headerMappings[convertToString(record[i])]
+		expectedHeader, exists := headerMappings[convertToLowerCaseString(record[i])]
 		if !exists {
 			continue // Current header is not the interesting to us
 		}
@@ -126,7 +126,7 @@ func fetchInterestingHeaderMappings() map[string]string {
 		} else if error != nil {
 			log.Fatal(error)
 		}
-		headers[convertToString(line[0])] = convertToString(line[1])
+		headers[convertToLowerCaseString(line[0])] = convertToString(line[1])
 	}
 
 	return headers
@@ -173,7 +173,7 @@ type Person struct {
 }
 
 func customCSV() {
-	path, _ := filepath.Abs("csvparser/csvs/roster1.csv")
+	path, _ := filepath.Abs("csvparser/csvs/roster2.csv")
 	csvFile, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, os.ModePerm)
 	if err != nil {
 		panic(err)
@@ -198,6 +198,11 @@ func convertToFloat(s string) float64 {
 func convertToString(s string) string {
 	ByteOrderMarkAsString := string('\uFEFF')
 	str := strings.TrimPrefix(s, ByteOrderMarkAsString)
+	return str
+}
+
+func convertToLowerCaseString(s string) string {
+	str := strings.ToLower(convertToString(s))
 	return str
 }
 
