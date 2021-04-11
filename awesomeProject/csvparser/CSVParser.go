@@ -9,25 +9,29 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
+	"time"
 )
 
 func main() {
-	readCSV()
+	csvPath := "csvs/roster1.csv"
+	outputCSVPath := "csvs/"
+	mappingCSVPath := "utils/mappings.csv"
+	processCSV(csvPath, outputCSVPath, mappingCSVPath)
 }
 
-func readCSV() {
-	path, _ := filepath.Abs("csvs/roster1.csv")
-	csvFile, err := os.Open(path)
+func processCSV(csvPathString string, outputCSVPathString string, mappingCSVPathString string) {
+	csvPath, _ := filepath.Abs(csvPathString)
+	csvFile, err := os.Open(csvPath)
 	if err != nil {
 		fmt.Printf("error happend %s", err)
 	}
 	reader := csv.NewReader(bufio.NewReader(csvFile))
 	var people []Person
 	line, error := reader.Read()
-	headers, err := fetchHeaders(line, fetchInterestingHeaderMappings())
+	headers, err := fetchHeaders(line, fetchInterestingHeaderMappings(mappingCSVPathString))
 	if err != nil {
 		log.Fatal(error)
 	} else {
@@ -60,6 +64,11 @@ func readCSV() {
 		log.Fatal(e1)
 	}
 
+
+	timeStamp := time.Now().Format("20060102150405")
+	correctOutputCSVName := path.Base(csvPathString) + "_correct_" + timeStamp
+	inCorrectOutputCSVName := path.Base(csvPathString) + "_wrong_" + timeStamp
+
 	for {
 		line, error := reader.Read()
 		if error == io.EOF {
@@ -67,15 +76,22 @@ func readCSV() {
 		} else if error != nil {
 			log.Fatal(error)
 		}
-		writeCorrectDataInCSV("csvs/output1.csv", line)
 
-		people = append(people, Person{
+		person := Person{
 			FirstName:      fetchFirstName(line, firstNameColumn, nameColumn),
 			LastName:       fetchLastName(line, lastNameColumn, nameColumn),
 			Email:          line[emailColumn],
 			Wage:           line[wageColumn],
 			EmployeeNumber: line[employeeNumberColumn],
-		})
+		}
+		people = append(people, person)
+		if (person.FirstName == "" && person.LastName == "" )  ||
+					person.Email == "" || person.Wage == ""|| person.EmployeeNumber == "" {
+			writeDataInCSV(outputCSVPathString + inCorrectOutputCSVName, line)
+		} else {
+			writeDataInCSV(outputCSVPathString + correctOutputCSVName, line)
+		}
+
 	}
 	peopleJson, _ := json.Marshal(people)
 	fmt.Println(string(peopleJson))
@@ -101,9 +117,9 @@ func fetchHeaders(record []string, headerMappings map[string]string) (map[string
 	return headers, nil
 }
 
-func fetchInterestingHeaderMappings() map[string]string {
+func fetchInterestingHeaderMappings(mappingCSVPath string) map[string]string {
 	headers := make(map[string]string)
-	path, _ := filepath.Abs("utils/mappings.csv")
+	path, _ := filepath.Abs(mappingCSVPath)
 	csvFile, err := os.Open(path)
 	if err != nil {
 		log.Fatal(err)
@@ -153,12 +169,15 @@ func fetchHeaderIndex(headers map[string]int, header string) (int, error) {
 	}
 }
 
-func writeCorrectDataInCSV(file string, data []string) error {
-	csvFile, error := getCSVForWrite(file)
-	if error != nil {
-		log.Fatal("could not open file to write the data", error)
+func writeDataInCSV(file string, data []string) error {
+	csvFile, csvOpenError := getCSVForWrite(file)
+	if csvOpenError != nil {
+		log.Fatal("could not open file to write the data", csvOpenError)
 	}
-	defer csvFile.Close()
+	defer func(csvFile *os.File) {
+		err := csvFile.Close()
+		if err != nil {}
+	}(csvFile)
 
 	writer := csv.NewWriter(csvFile)
 	defer writer.Flush()
@@ -166,13 +185,14 @@ func writeCorrectDataInCSV(file string, data []string) error {
 	if err := writer.Write(data); err != nil {
 		log.Fatalln("error writing record to file", err)
 	}
-	writer.Flush()
-	err := writer.Error() // Checks if any error occurred while writing
-	if err != nil {
-		fmt.Println("Error while writing to the file ::", err)
-		return err
+
+	if flushErr := flushData(writer); flushErr != nil {
+		return flushErr
 	}
-	csvFile.Close()
+
+	if closeErr := closeCSV(csvFile); closeErr != nil {
+		return closeErr
+	}
 	return nil
 }
 
@@ -184,14 +204,6 @@ type Person struct {
 	EmployeeNumber string `json:"number"`
 }
 
-func convertToFloat(s string) float64 {
-	flt, err := strconv.ParseFloat(s, 32)
-	if err == nil {
-		return flt
-	}
-	return 0
-}
-
 func convertToString(s string) string {
 	ByteOrderMarkAsString := string('\uFEFF')
 	str := strings.TrimPrefix(s, ByteOrderMarkAsString)
@@ -201,14 +213,6 @@ func convertToString(s string) string {
 func convertToLowerCaseString(s string) string {
 	str := strings.ToLower(convertToString(s))
 	return str
-}
-
-func convertToInt(s string) int {
-	flt, err := strconv.ParseInt(s, 10, 32)
-	if err == nil {
-		return int(flt)
-	}
-	return 0
 }
 
 func createCSV(file string) (bool, error) {
@@ -234,4 +238,23 @@ func getCSVForWrite(file string) (*os.File, error) {
 	csvFile, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 
 	return csvFile, nil
+}
+
+func flushData(writer *csv.Writer) error {
+	writer.Flush()
+	flushErr := writer.Error() // Checks if any error occurred while writing
+	if flushErr != nil {
+		fmt.Println("error while writing to the file", flushErr)
+		return flushErr
+	}
+	return nil
+}
+
+func closeCSV(csvFile *os.File) error {
+	csvCloseError := csvFile.Close()
+	if csvCloseError != nil {
+		fmt.Println("error while closing the file", csvCloseError)
+		return csvCloseError
+	}
+	return nil
 }
