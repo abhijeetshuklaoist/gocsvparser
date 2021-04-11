@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,23 +15,11 @@ import (
 )
 
 func main() {
-	/*
-		var x int                            // variable declaration
-		var y = 11                           // Inline initialization
-		x = 5                                // initialization
-		arr := [2][2]int{{1, 2}, {3, x + y}} // Fix sized 2D array declaration and inline initialization
-		strings := make([]string, 1)         //Make a slice
-		fmt.Printf("\nSize of Slice is %v and capacity of slice is %v", len(strings), cap(strings))
-		strings = append(strings, "One", "Two", "Three", "Four") //Append values to a slice
-		fmt.Printf("\nHello World. Arrays is %v and Slice is %v", arr, strings)
-		fmt.Println("\nSize of Slice is %v and capacity of slice is %v", len(strings), cap(strings))
-	*/
-
 	readCSV()
 }
 
 func readCSV() {
-	path, _ := filepath.Abs("csvparser/csvs/roster4.csv")
+	path, _ := filepath.Abs("csvs/roster1.csv")
 	csvFile, err := os.Open(path)
 	if err != nil {
 		fmt.Printf("error happend %s", err)
@@ -78,9 +67,11 @@ func readCSV() {
 		} else if error != nil {
 			log.Fatal(error)
 		}
+		writeCorrectDataInCSV("csvs/output1.csv", line)
+
 		people = append(people, Person{
 			FirstName:      fetchFirstName(line, firstNameColumn, nameColumn),
-			LastName:      fetchLastName(line, lastNameColumn, nameColumn),
+			LastName:       fetchLastName(line, lastNameColumn, nameColumn),
 			Email:          line[emailColumn],
 			Wage:           line[wageColumn],
 			EmployeeNumber: line[employeeNumberColumn],
@@ -88,6 +79,7 @@ func readCSV() {
 	}
 	peopleJson, _ := json.Marshal(people)
 	fmt.Println(string(peopleJson))
+
 }
 
 func fetchHeaders(record []string, headerMappings map[string]string) (map[string]int, error) {
@@ -111,7 +103,7 @@ func fetchHeaders(record []string, headerMappings map[string]string) (map[string
 
 func fetchInterestingHeaderMappings() map[string]string {
 	headers := make(map[string]string)
-	path, _ := filepath.Abs("csvparser/utils/mappings.csv")
+	path, _ := filepath.Abs("utils/mappings.csv")
 	csvFile, err := os.Open(path)
 	if err != nil {
 		log.Fatal(err)
@@ -152,7 +144,6 @@ func fetchLastName(record []string, lastNameColumnIndex int, nameColumnIndex int
 	return ""
 }
 
-
 func fetchHeaderIndex(headers map[string]int, header string) (int, error) {
 	headerIndex, exists := headers[header]
 	if !exists {
@@ -160,6 +151,29 @@ func fetchHeaderIndex(headers map[string]int, header string) (int, error) {
 	} else {
 		return headerIndex, nil
 	}
+}
+
+func writeCorrectDataInCSV(file string, data []string) error {
+	csvFile, error := getCSVForWrite(file)
+	if error != nil {
+		log.Fatal("could not open file to write the data", error)
+	}
+	defer csvFile.Close()
+
+	writer := csv.NewWriter(csvFile)
+	defer writer.Flush()
+
+	if err := writer.Write(data); err != nil {
+		log.Fatalln("error writing record to file", err)
+	}
+	writer.Flush()
+	err := writer.Error() // Checks if any error occurred while writing
+	if err != nil {
+		fmt.Println("Error while writing to the file ::", err)
+		return err
+	}
+	csvFile.Close()
+	return nil
 }
 
 type Person struct {
@@ -178,7 +192,6 @@ func convertToFloat(s string) float64 {
 	return 0
 }
 
-
 func convertToString(s string) string {
 	ByteOrderMarkAsString := string('\uFEFF')
 	str := strings.TrimPrefix(s, ByteOrderMarkAsString)
@@ -196,4 +209,29 @@ func convertToInt(s string) int {
 		return int(flt)
 	}
 	return 0
+}
+
+func createCSV(file string) (bool, error) {
+	_, createFileError := os.Create(file)
+	if createFileError != nil {
+		log.Fatalln("failed to open file", createFileError)
+		return false, createFileError
+	}
+	return true, nil
+}
+
+func getCSVForWrite(file string) (*os.File, error) {
+	var csvFile *os.File
+	path, _ := filepath.Abs(file)
+	csvFile, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+
+	if errors.Is(err, os.ErrNotExist) {
+		created, error := createCSV(file)
+		if !created {
+			return nil, error
+		}
+	}
+	csvFile, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+
+	return csvFile, nil
 }
