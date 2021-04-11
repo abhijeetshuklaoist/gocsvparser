@@ -1,13 +1,15 @@
-package main
+package utils
 
 import (
+	"csvpaser/parser"
+	"csvpaser/utils"
 	"strings"
 	"testing"
 )
 
 func TestConvertToLowerCase(t *testing.T) {
 	testString := "MixedCaseString"
-	total := convertToLowerCaseString(testString)
+	total :=  utils.ConvertToLowerCaseString(testString)
 	if total != strings.ToLower(testString) {
 		t.Errorf("Sum was incorrect, got: %s, want: %s.", total, "mixedcasestring")
 	}
@@ -15,7 +17,7 @@ func TestConvertToLowerCase(t *testing.T) {
 
 func TestConvertToString(t *testing.T) {
 	testString := "\uFEFFMixedCaseString"
-	total := convertToLowerCaseString(testString)
+	total := utils.ConvertToLowerCaseString(testString)
 	if total != strings.ToLower(strings.ReplaceAll(testString, "\uFEFF","")) {
 		t.Errorf("Sum was incorrect, got: %s, want: %s.", total, "mixedcasestring")
 	}
@@ -27,7 +29,7 @@ func TestFetchHeaderIndex(t *testing.T) {
 	testHeaders["TestHeader2"] = 1
 	testHeaders["TestHeader3"] = 2
 
-	actualHeaderIndex, err := fetchHeaderIndex(testHeaders, "TestHeader3")
+	actualHeaderIndex, err := parser.FetchHeaderIndex(testHeaders, "TestHeader3")
 	expectedHeaderIndex := 2
 	if err != nil {
 		t.Errorf("Header %s was expected to be found in %v", "TestHeader3", testHeaders)
@@ -41,7 +43,7 @@ func TestFetchHeaderIndexForNonExistingHeader(t *testing.T) {
 	testHeaders := make(map[string]int)
 	testHeaders["TestHeader1"] = 0
 
-	actualHeader, err := fetchHeaderIndex(testHeaders, "TestHeader2")
+	actualHeader, err := parser.FetchHeaderIndex(testHeaders, "TestHeader2")
 	if err == nil {
 		t.Errorf("Header %s was not expected to be found in %v", "TestHeader2", testHeaders)
 	}
