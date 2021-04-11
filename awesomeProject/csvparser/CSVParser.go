@@ -5,7 +5,6 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"github.com/gocarina/gocsv"
 	"io"
 	"log"
 	"os"
@@ -28,14 +27,13 @@ func main() {
 	*/
 
 	readCSV()
-	//customCSV()
 }
 
 func readCSV() {
 	path, _ := filepath.Abs("csvparser/csvs/roster4.csv")
 	csvFile, err := os.Open(path)
 	if err != nil {
-		fmt.Printf("Error happend", err)
+		fmt.Printf("error happend %s", err)
 	}
 	reader := csv.NewReader(bufio.NewReader(csvFile))
 	var people []Person
@@ -101,7 +99,7 @@ func fetchHeaders(record []string, headerMappings map[string]string) (map[string
 		}
 		header, exists := headers[expectedHeader]
 		if exists {
-			return nil, fmt.Errorf("duplicate column %s exists", header)
+			return nil, fmt.Errorf("duplicate column %d exists", header)
 		} else {
 			ByteOrderMarkAsString := string('\uFEFF')
 			headerString := strings.TrimPrefix(expectedHeader, ByteOrderMarkAsString)
@@ -172,20 +170,6 @@ type Person struct {
 	EmployeeNumber string `json:"number"`
 }
 
-func customCSV() {
-	path, _ := filepath.Abs("csvparser/csvs/roster2.csv")
-	csvFile, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, os.ModePerm)
-	if err != nil {
-		panic(err)
-	}
-	people := []*Person{}
-	if err := gocsv.UnmarshalFile(csvFile, &people); err != nil { // Load clients from file
-		panic(err)
-	}
-	peopleJson, _ := json.Marshal(people)
-	fmt.Println(string(peopleJson))
-}
-
 func convertToFloat(s string) float64 {
 	flt, err := strconv.ParseFloat(s, 32)
 	if err == nil {
@@ -205,7 +189,6 @@ func convertToLowerCaseString(s string) string {
 	str := strings.ToLower(convertToString(s))
 	return str
 }
-
 
 func convertToInt(s string) int {
 	flt, err := strconv.ParseInt(s, 10, 32)
