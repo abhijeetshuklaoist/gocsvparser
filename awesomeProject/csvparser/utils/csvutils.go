@@ -54,7 +54,7 @@ func getCSVForWrite(file string) (*os.File, error) {
 	return csvFile, nil
 }
 
-func WriteDataInCSV(file string, data []string) error {
+func WriteDataInCSVSync(file string, data []string) error {
 	csvFile, csvOpenError := getCSVForWrite(file)
 	if csvOpenError != nil {
 		log.Fatal("could not open file to write the data", csvOpenError)
@@ -78,5 +78,36 @@ func WriteDataInCSV(file string, data []string) error {
 	if closeErr := closeCSV(csvFile); closeErr != nil {
 		return closeErr
 	}
+	return nil
+}
+
+
+func WriteDataInCSV(file string, dataChannel chan []string, processingCompleteChannel chan bool) error {
+	csvFile, csvOpenError := getCSVForWrite(file)
+	if csvOpenError != nil {
+		log.Fatal("could not open file to write the data", csvOpenError)
+	}
+	defer func(csvFile *os.File) {
+		err := csvFile.Close()
+		if err != nil {}
+	}(csvFile)
+
+	writer := csv.NewWriter(csvFile)
+	defer writer.Flush()
+
+	for data := range dataChannel {
+		if err := writer.Write(data); err != nil {
+			log.Fatalln("error writing record to file", err)
+		}
+		if flushErr := flushData(writer); flushErr != nil {
+			log.Fatalln("error flushing record to file", flushErr)
+			return flushErr
+		}
+	}
+
+	if closeErr := closeCSV(csvFile); closeErr != nil {
+		return closeErr
+	}
+	processingCompleteChannel <- true
 	return nil
 }
