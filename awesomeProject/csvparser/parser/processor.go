@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func ProcessCSV(csvPathString string, outputCSVPathString string, mappingCSVPathString string) {
+func ProcessCSV(csvPathString string, outputCSVPathString string, mappingCSVPathString string, extractData bool) {
 	headers := fetchInterestingHeaders(csvPathString, mappingCSVPathString)
 
 	firstNameColumnIndex, _ := FetchHeaderIndex(headers, "First Name")
@@ -50,7 +50,7 @@ func ProcessCSV(csvPathString string, outputCSVPathString string, mappingCSVPath
 	inCorrectOutputCSVName := path.Base(csvPathString) + "_wrong_" + timeStamp
 
 	go processLine(csvPathString, firstNameColumnIndex, lastNameColumnIndex, nameColumnIndex, emailColumnIndex, wageColumnIndex,
-		employeeNumberColumnIndex, correctDataChannel, inCorrectDataChannel)
+		employeeNumberColumnIndex, correctDataChannel, inCorrectDataChannel, extractData)
 	go utils.WriteDataInCSV(outputCSVPathString + inCorrectOutputCSVName, inCorrectDataChannel, inCorrectDataProcessingCompleteChannel)
 	go utils.WriteDataInCSV(outputCSVPathString + correctOutputCSVName, correctDataChannel, correctDataProcessingCompleteChannel)
 
@@ -81,14 +81,19 @@ func fetchInterestingHeaders(csvPathString string, mappingCSVPathString string) 
 }
 
 func processLine(csvPathString string, firstNameColumn int, lastNameColumn int, nameColumn int, emailColumn int,
-	wageColumn int, employeeNumberColumn int,
-	correctDataChannel chan []string, inCorrectDataChannel chan []string) {
+	wageColumn int, employeeNumberColumn int, correctDataChannel chan []string, inCorrectDataChannel chan []string,
+	extractData bool) {
 	csvPath, _ := filepath.Abs(csvPathString)
 	csvFile, _ := os.Open(csvPath)
 	reader := csv.NewReader(bufio.NewReader(csvFile))
 	headers, _ := reader.Read() // Skip headers
 	inCorrectDataChannel <- headers
-	correctDataChannel <- headers
+	if extractData {
+		correctDataChannel <- Person{}.fields()
+	} else {
+		correctDataChannel <- headers
+	}
+
 	totalRecordCount := 1
 	correctRecordCount := 0
 	inCorrectRecordCount := 0
@@ -112,7 +117,11 @@ func processLine(csvPathString string, firstNameColumn int, lastNameColumn int, 
 			inCorrectDataChannel <- line
 			inCorrectRecordCount++
 		} else {
-			correctDataChannel <- line
+			if extractData {
+				correctDataChannel <- person.value()
+			} else {
+				correctDataChannel <- line
+			}
 			correctRecordCount++
 		}
 		totalRecordCount++

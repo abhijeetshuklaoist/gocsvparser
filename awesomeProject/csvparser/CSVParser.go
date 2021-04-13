@@ -15,9 +15,10 @@ func main() {
 	csvPath := getInput("Input CSV Path (absolute path)")
 	outputCSVPath := getInput("Directory where Output CSVs will be stored")
 	mappingCSVPath := getInput("Mappings CSV Path (absolute path)")
+	extractData := getInput("Extract just te interesting fields? (Y/N)")
 
 	start := time.Now()
-	parser.ProcessCSV(csvPath, outputCSVPath, mappingCSVPath)
+	parser.ProcessCSV(csvPath, outputCSVPath, mappingCSVPath, booleanFromString(extractData))
 	elapsed := time.Since(start)
 	log.Printf("\nCSVParser took %s", elapsed)
 }
@@ -39,3 +40,9 @@ func getInput(field string) string {
 	return input
 }
 
+func booleanFromString(choice string) bool {
+	if strings.ToLower(choice) == "y" || strings.ToLower(choice) == "yes" {
+		return true
+	}
+	return false
+}

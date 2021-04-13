@@ -7,3 +7,11 @@ type Person struct {
 	Wage           string `json:"wage"`
 	EmployeeNumber string `json:"number"`
 }
+
+func (p Person) value() []string {
+	return [] string {p.FirstName, p.LastName, p.Email, p.Wage, p.EmployeeNumber}
+}
+
+func (p Person) fields() []string {
+	return [] string {"FirstName", "LastName", "Email", "Wage", "EmployeeNumber"}
+}
