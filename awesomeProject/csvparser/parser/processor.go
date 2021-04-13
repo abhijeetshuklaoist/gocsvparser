@@ -86,7 +86,9 @@ func processLine(csvPathString string, firstNameColumn int, lastNameColumn int, 
 	csvPath, _ := filepath.Abs(csvPathString)
 	csvFile, _ := os.Open(csvPath)
 	reader := csv.NewReader(bufio.NewReader(csvFile))
-	_, _ = reader.Read() // Skip headers
+	headers, _ := reader.Read() // Skip headers
+	inCorrectDataChannel <- headers
+	correctDataChannel <- headers
 	totalRecordCount := 1
 	correctRecordCount := 0
 	inCorrectRecordCount := 0
