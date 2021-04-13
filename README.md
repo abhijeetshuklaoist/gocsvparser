@@ -28,6 +28,9 @@ In the case of, when there are not all expected column present we can just log t
 
 
 # Performance number:
-Input: A csv containing 2M records, with 20 columns, having 1M correct records, and 1M incorrect records. Size of file is arrprox 662MB
-Expected output: 2 files, 1 having 1M correct records, another having 1M incorrect records
-Execution time: On average (of 5 runs) on my machines, it took 12 seconds to process the file.
+## Input: 
+A csv containing 2M records, with 20 columns, having 1M correct records, and 1M incorrect records. Size of file is arrprox 662MB
+### Expected output: 
+2 files, 1 having 1M correct records, another having 1M incorrect records
+### Execution time: 
+On average (of 5 runs) on my machines, it took 12 seconds to process the file.
