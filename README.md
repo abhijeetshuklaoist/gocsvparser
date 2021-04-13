@@ -34,3 +34,8 @@ A csv containing 2M records, with 20 columns, having 1M correct records, and 1M 
 2 files, 1 having 1M correct records, another having 1M incorrect records
 ### Execution time: 
 On average (of 5 runs) on my machines, it took 12 seconds to process the file.
+
+# What is next?
+1. Add debug level logger using some 3rd part logger package
+2. Added logic to process files in bulk. Should be simple enough
+3. Add more automated tests 
