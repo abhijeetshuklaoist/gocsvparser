@@ -12,9 +12,9 @@ import (
 
 func main() {
 
-	csvPath := getInput("csvPath")
-	outputCSVPath := getInput("outputCSVPath")
-	mappingCSVPath := getInput("mappingCSVPath")
+	csvPath := getInput("Input CSV Path (absolute path)")
+	outputCSVPath := getInput("Directory where Output CSVs will be stored")
+	mappingCSVPath := getInput("Mappings CSV Path (absolute path)")
 
 	start := time.Now()
 	parser.ProcessCSV(csvPath, outputCSVPath, mappingCSVPath)
@@ -28,10 +28,14 @@ func getInput(field string) string {
 
 	input, err := reader.ReadString('\n')
 	if err != nil {
-		fmt.Println("An error occurred while reading input. Please try again", err)
+		fmt.Printf("error %v", err)
+		log.Fatalf("An error occurred while reading input. Please try again.")
 		return ""
 	}
 	input = strings.TrimSuffix(input, "\n")
+	if input == "" {
+		log.Fatalf("Not a valid input. Please try again\"")
+	}
 	return input
 }
 

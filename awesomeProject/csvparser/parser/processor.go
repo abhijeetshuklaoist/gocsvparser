@@ -59,13 +59,15 @@ func ProcessCSV(csvPathString string, outputCSVPathString string, mappingCSVPath
 	<-correctDataProcessingCompleteChannel
 
 	fmt.Printf("\nProcessing completed")
+	fmt.Printf("\nInCorrect data file is: %s \n", outputCSVPathString + inCorrectOutputCSVName)
+	fmt.Printf("\nCorrect data file is: %s \n", outputCSVPathString + correctOutputCSVName)
 }
 
 func fetchInterestingHeaders(csvPathString string, mappingCSVPathString string) map[string]int {
 	csvPath, _ := filepath.Abs(csvPathString)
 	csvFile, openError := os.Open(csvPath)
 	if openError != nil {
-		log.Fatal("could not open file, error happened", openError)
+		log.Fatal("could not open file, error happened ", openError)
 	}
 	reader := csv.NewReader(bufio.NewReader(csvFile))
 	line, readError := reader.Read()
@@ -84,7 +86,7 @@ func processLine(csvPathString string, firstNameColumn int, lastNameColumn int, 
 	csvPath, _ := filepath.Abs(csvPathString)
 	csvFile, _ := os.Open(csvPath)
 	reader := csv.NewReader(bufio.NewReader(csvFile))
-	reader.Read() // Skip headers
+	_, _ = reader.Read() // Skip headers
 	totalRecordCount := 1
 	correctRecordCount := 0
 	inCorrectRecordCount := 0
@@ -147,18 +149,18 @@ func fetchHeaders(record []string, headerMappings map[string]string) (map[string
 
 func fetchInterestingHeaderMappings(mappingCSVPath string) map[string]string {
 	headers := make(map[string]string)
-	path, _ := filepath.Abs(mappingCSVPath)
-	csvFile, err := os.Open(path)
+	mappingsCSVPath, _ := filepath.Abs(mappingCSVPath)
+	csvFile, err := os.Open(mappingsCSVPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 	reader := csv.NewReader(bufio.NewReader(csvFile))
 	for {
-		line, error := reader.Read()
-		if error == io.EOF {
+		line, readError := reader.Read()
+		if readError == io.EOF {
 			break
-		} else if error != nil {
-			log.Fatal(error)
+		} else if readError != nil {
+			log.Fatal(readError)
 		}
 		headers[utils.ConvertToLowerCaseString(line[0])] = utils.ConvertToString(line[1])
 	}
