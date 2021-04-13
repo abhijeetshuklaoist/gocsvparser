@@ -15,42 +15,27 @@ import (
 )
 
 func ProcessCSV(csvPathString string, outputCSVPathString string, mappingCSVPathString string) {
-	csvPath, _ := filepath.Abs(csvPathString)
-	csvFile, err := os.Open(csvPath)
-	if err != nil {
-		fmt.Printf("error happend %s", err)
-	}
-	reader := csv.NewReader(bufio.NewReader(csvFile))
-	line, error := reader.Read()
-	headers, err := fetchHeaders(line, fetchInterestingHeaderMappings(mappingCSVPathString))
-	if err != nil {
-		log.Fatal(error)
-	} else {
-		fmt.Println(headers)
-	}
+	headers := fetchInterestingHeaders(csvPathString, mappingCSVPathString)
 
-	firstNameColumn, e1 := FetchHeaderIndex(headers, "First Name")
+	firstNameColumnIndex, _ := FetchHeaderIndex(headers, "First Name")
+	lastNameColumnIndex, _ := FetchHeaderIndex(headers, "Last Name")
+	nameColumnIndex, _ := FetchHeaderIndex(headers, "Name")
 
-	lastNameColumn, e1 := FetchHeaderIndex(headers, "Last Name")
-
-	nameColumn, e1 := FetchHeaderIndex(headers, "Name")
-
-	if firstNameColumn == -1 && lastNameColumn == -1 && nameColumn == -1 {
+	if firstNameColumnIndex == -1 && lastNameColumnIndex == -1 && nameColumnIndex == -1 {
 		log.Fatal("name column does not exists")
 	}
 
-	emailColumn, e1 := FetchHeaderIndex(headers, "Email")
-
+	emailColumnIndex, e1 := FetchHeaderIndex(headers, "Email")
 	if e1 != nil {
 		log.Fatal(e1)
 	}
 
-	wageColumn, e1 := FetchHeaderIndex(headers, "Wage")
+	wageColumnIndex, e1 := FetchHeaderIndex(headers, "Wage")
 	if e1 != nil {
 		log.Fatal(e1)
 	}
-	employeeNumberColumn, e1 := FetchHeaderIndex(headers, "EmployeeNumber")
 
+	employeeNumberColumnIndex, e1 := FetchHeaderIndex(headers, "EmployeeNumber")
 	if e1 != nil {
 		log.Fatal(e1)
 	}
@@ -58,18 +43,39 @@ func ProcessCSV(csvPathString string, outputCSVPathString string, mappingCSVPath
 	timeStamp := time.Now().Format("20060102150405")
 	var correctDataChannel = make(chan []string, 500)
 	var inCorrectDataChannel = make(chan []string, 500)
-	var processingCompleteChannel = make(chan bool)
-	var processingCompleteChannel2 = make(chan bool)
+	var inCorrectDataProcessingCompleteChannel = make(chan bool)
+	var correctDataProcessingCompleteChannel = make(chan bool)
+
 	correctOutputCSVName := path.Base(csvPathString) + "_correct_" + timeStamp
 	inCorrectOutputCSVName := path.Base(csvPathString) + "_wrong_" + timeStamp
 
-	go processLine(csvPathString, firstNameColumn, lastNameColumn, nameColumn, emailColumn, wageColumn,
-		employeeNumberColumn, correctDataChannel, inCorrectDataChannel)
-	go utils.WriteDataInCSV(outputCSVPathString + inCorrectOutputCSVName, inCorrectDataChannel, processingCompleteChannel)
-	go utils.WriteDataInCSV(outputCSVPathString + correctOutputCSVName, correctDataChannel, processingCompleteChannel2)
-	<- processingCompleteChannel
-	<- processingCompleteChannel2
-	fmt.Printf("Processing completed")
+	go processLine(csvPathString, firstNameColumnIndex, lastNameColumnIndex, nameColumnIndex, emailColumnIndex, wageColumnIndex,
+		employeeNumberColumnIndex, correctDataChannel, inCorrectDataChannel)
+	go utils.WriteDataInCSV(outputCSVPathString + inCorrectOutputCSVName, inCorrectDataChannel, inCorrectDataProcessingCompleteChannel)
+	go utils.WriteDataInCSV(outputCSVPathString + correctOutputCSVName, correctDataChannel, correctDataProcessingCompleteChannel)
+
+	// wait till correct and incorrect data in written in files
+	<-inCorrectDataProcessingCompleteChannel
+	<-correctDataProcessingCompleteChannel
+
+	fmt.Printf("\nProcessing completed")
+}
+
+func fetchInterestingHeaders(csvPathString string, mappingCSVPathString string) map[string]int {
+	csvPath, _ := filepath.Abs(csvPathString)
+	csvFile, openError := os.Open(csvPath)
+	if openError != nil {
+		log.Fatal("could not open file, error happened", openError)
+	}
+	reader := csv.NewReader(bufio.NewReader(csvFile))
+	line, readError := reader.Read()
+	headers, err := fetchHeaders(line, fetchInterestingHeaderMappings(mappingCSVPathString))
+	if err != nil {
+		log.Fatal(readError)
+	} else {
+		fmt.Println(headers)
+	}
+	return headers
 }
 
 func processLine(csvPathString string, firstNameColumn int, lastNameColumn int, nameColumn int, emailColumn int,
@@ -79,13 +85,15 @@ func processLine(csvPathString string, firstNameColumn int, lastNameColumn int, 
 	csvFile, _ := os.Open(csvPath)
 	reader := csv.NewReader(bufio.NewReader(csvFile))
 	reader.Read() // Skip headers
-	i := 1
+	totalRecordCount := 1
+	correctRecordCount := 0
+	inCorrectRecordCount := 0
 	for {
-		line, error := reader.Read()
-		if error == io.EOF {
+		line, readError := reader.Read()
+		if readError == io.EOF {
 			break
-		} else if error != nil {
-			log.Fatal(error)
+		} else if readError != nil {
+			log.Fatal(readError)
 		}
 
 		person := Person{
@@ -98,14 +106,22 @@ func processLine(csvPathString string, firstNameColumn int, lastNameColumn int, 
 		if (person.FirstName == "" && person.LastName == "" )  ||
 			person.Email == "" || person.Wage == ""|| person.EmployeeNumber == "" {
 			inCorrectDataChannel <- line
+			inCorrectRecordCount++
 		} else {
 			correctDataChannel <- line
+			correctRecordCount++
 		}
-		i++
-		if i%500 == 0{
-			fmt.Printf("\n Processed %d records", i)
+		totalRecordCount++
+		if totalRecordCount% 500 == 0 {
+			fmt.Printf("\nProcessing.... Processed %d records", totalRecordCount)
 		}
 	}
+
+	fmt.Printf("\nProcessing completed. Processed %d records", totalRecordCount)
+	fmt.Printf("\nProcessing completed. Correct records count is %d", correctRecordCount)
+	fmt.Printf("\nProcessing completed. InCorrect records count is %d", inCorrectRecordCount)
+
+	// close channels
 	close(inCorrectDataChannel)
 	close(correctDataChannel)
 }
@@ -172,7 +188,6 @@ func fetchLastName(record []string, lastNameColumnIndex int, nameColumnIndex int
 		} else {
 			return strings.Split(record[nameColumnIndex], " ")[1]
 		}
-
 	}
 	log.Fatal("name column not found")
 	return ""
