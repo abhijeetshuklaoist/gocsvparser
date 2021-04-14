@@ -9,17 +9,17 @@ import (
 
 func TestConvertToLowerCase(t *testing.T) {
 	testString := "MixedCaseString"
-	total :=  utils.ConvertToLowerCaseString(testString)
-	if total != strings.ToLower(testString) {
-		t.Errorf("Sum was incorrect, got: %s, want: %s.", total, "mixedcasestring")
+	actualString :=  utils.ConvertToLowerCaseString(testString)
+	if actualString != strings.ToLower(testString) {
+		t.Errorf("Sum was incorrect, got: %s, want: %s.", actualString, "mixedcasestring")
 	}
 }
 
 func TestConvertToString(t *testing.T) {
 	testString := "\uFEFFMixedCaseString"
-	total := utils.ConvertToLowerCaseString(testString)
-	if total != strings.ToLower(strings.ReplaceAll(testString, "\uFEFF","")) {
-		t.Errorf("Sum was incorrect, got: %s, want: %s.", total, "mixedcasestring")
+	actualString := utils.ConvertToLowerCaseString(testString)
+	if actualString != strings.ToLower(strings.ReplaceAll(testString, "\uFEFF","")) {
+		t.Errorf("Sum was incorrect, got: %s, want: %s.", actualString, "mixedcasestring")
 	}
 }
 

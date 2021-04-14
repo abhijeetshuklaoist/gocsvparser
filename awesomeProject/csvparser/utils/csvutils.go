@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bufio"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -29,7 +30,7 @@ func closeCSV(csvFile *os.File) error {
 	return nil
 }
 
-func createCSV(file string) (bool, error) {
+func CreateCSV(file string) (bool, error) {
 	_, createFileError := os.Create(file)
 	if createFileError != nil {
 		log.Fatalln("failed to open file", createFileError)
@@ -44,7 +45,7 @@ func getCSVForWrite(file string) (*os.File, error) {
 	csvFile, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 
 	if errors.Is(err, os.ErrNotExist) {
-		created, error := createCSV(file)
+		created, error := CreateCSV(file)
 		if !created {
 			return nil, error
 		}
@@ -110,4 +111,16 @@ func WriteDataInCSV(file string, dataChannel chan []string, processingCompleteCh
 	}
 	processingCompleteChannel <- true
 	return nil
+}
+
+func ReadDataFromCSV(csvPathString string) [][]string{
+	csvPath, _ := filepath.Abs(csvPathString)
+	csvFile, openError := os.Open(csvPath)
+	if openError != nil {
+		log.Fatal("could not open file, error happened ", openError)
+	}
+	reader := csv.NewReader(bufio.NewReader(csvFile))
+	line, _ := reader.ReadAll()
+
+	return line
 }
